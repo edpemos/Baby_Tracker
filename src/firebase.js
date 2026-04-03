@@ -1,14 +1,14 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
-// Configuración de prueba o vacía hasta que el usuario la reemplace
 const firebaseConfig = {
-  apiKey: "API_KEY_HERE",
-  authDomain: "PROJECT_ID.firebaseapp.com",
-  projectId: "PROJECT_ID",
-  storageBucket: "PROJECT_ID.firebasestorage.app",
-  messagingSenderId: "SENDER_ID",
-  appId: "APP_ID"
+  apiKey: "AIzaSyDZ8jMi-eTrpwfjjXJRFpcdUNeCoWNgkyY",
+  authDomain: "baby-tracker-fd3f8.firebaseapp.com",
+  projectId: "baby-tracker-fd3f8",
+  storageBucket: "baby-tracker-fd3f8.firebasestorage.app",
+  messagingSenderId: "742103120084",
+  appId: "1:742103120084:web:303738e7239f17e10de341",
+  measurementId: "G-4C27RGT43M"
 };
 
 let app;
