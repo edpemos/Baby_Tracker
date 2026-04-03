@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Calendar, BarChart2, Home, Sparkles } from 'lucide-react';
+import { Calendar, BarChart2, Home, Sparkles, Settings } from 'lucide-react';
 
 export default function Navigation() {
   return (
@@ -19,7 +19,11 @@ export default function Navigation() {
       </NavLink>
       <NavLink to="/ai" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
         <Sparkles size={24} />
-        <span>Consejos</span>
+        <span style={{ fontSize: '0.65rem' }}>Consejos</span>
+      </NavLink>
+      <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+        <Settings size={24} />
+        <span style={{ fontSize: '0.65rem' }}>Ajustes</span>
       </NavLink>
     </nav>
   );

@@ -9,6 +9,7 @@ import CalendarView from './pages/CalendarView';
 import HomeView from './pages/HomeView';
 import StatsView from './pages/StatsView';
 import AIPanel from './pages/AIPanel';
+import SettingsView from './pages/SettingsView';
 
 const AuthenticatedLayout = () => {
   const { isAuthenticated } = useData();
@@ -25,6 +26,7 @@ const AuthenticatedLayout = () => {
           <Route path="/calendar" element={<CalendarView />} />
           <Route path="/stats" element={<StatsView />} />
           <Route path="/ai" element={<AIPanel />} />
+          <Route path="/settings" element={<SettingsView />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
