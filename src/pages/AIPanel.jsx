@@ -70,13 +70,40 @@ export default function AIPanel() {
       });
     }
 
-    // AI general tips
+    const pediatricTips = [
+      { t: "Lactancia a demanda", d: "La lactancia materna no entiende de relojes. Ofrece el pecho si Ignacio cabecea, se lleva las manos a la boca o saca la lengua. El llanto es su última señal de aviso." },
+      { t: "El tamaño de su estómago", d: "Al nacer su estómago era como una cereza, y ahora poco a poco crece. Por eso comen poquito pero de forma constante. No te preocupes si parece que siempre tiene hambre." },
+      { t: "Seguridad al dormir", d: "Recuerda la regla de oro: siempre boca arriba, sobre un colchón firme, sin almohadas, peluches o mantas sueltas en la cuna (SMSL)." },
+      { t: "Estimulación visual", d: "A esta edad los bebés no ven muy lejos. Ponte a unos 25cm de su cara (donde el pecho a tus ojos), mírale directamente y háblale suave. Es lo más estimulante para su cerebro." },
+      { t: "Estirones de crecimiento", d: "Existen crisis o 'brotes de crecimiento' (usualmente a los 15-20 días, al mes y medio o a los 3 meses). De repente piden el triple para aumentar tu producción. ¡Mucha paciencia!" },
+      { t: "Colores del pañal", d: "Es completamente normal que la caca pase de tonos mostaza a verde parduzco, e incluso cambie su consistencia según lo que tú hayas comido, o alternando pecho/biberón." },
+      { t: "Tummy Time", d: "Cuando esté bien descansado y despierto, ponlo un par de minutos boca abajo sobre tu pecho o en una mantita. Hará fuerza levantando la cabeza para potenciar sus músculos cervicales." },
+      { t: "Eructos y reflujo", d: "Favorece hacerle eructar llevándotelo al hombro firmemente en mitad de la toma y al terminar. Si a los 5 minutos dando palmaditas no hay eructo, no te obsesiones, a veces no tragan aire." },
+      { t: "La hora de las brujas", d: "Si por la tarde noche ves que llora más de lo normal sin motivo aparente (el síndrome del atardecer), bájale las luces, pon ruido blanco (como una campana extractora o agua) y acúnale con contacto piel con piel." },
+      { t: "Uñas de recién nacido", d: "Crecen a la velocidad de la luz y están afiladísimas. Conviene limarlas de forma recta usando una lima suave de cristal cuando esté profundamente dormido." }
+    ];
+
+    // Pseudo-aleatoriedad basada en el día actual (cambia a medianoche)
+    const dayIndex = Math.floor(Date.now() / 86400000);
+    const tip1 = pediatricTips[dayIndex % pediatricTips.length];
+    const tip2 = pediatricTips[(dayIndex * 3 + 7) % pediatricTips.length];
+
     tips.push({
       type: 'ai',
       icon: <Sparkles color="#F4B400" />,
-      title: 'Nota de tu IA Pediátrica',
-      text: 'Recuerda: la evidencia científica respalda no mirar el reloj con la lactancia materna, se debe ofrecer "a demanda". Los llantos tardíos no son la primera señal de hambre; busca que se lleve las manos a la boca o busque el pecho.'
+      title: tip1.t,
+      text: tip1.d
     });
+    
+    // Si son diferentes, metemos dos tips diarios en vez de uno
+    if (tip1.t !== tip2.t) {
+      tips.push({
+        type: 'ai',
+        icon: <Sparkles color="#F4B400" />,
+        title: tip2.t,
+        text: tip2.d
+      });
+    }
 
     return tips;
   }, [entries]);
