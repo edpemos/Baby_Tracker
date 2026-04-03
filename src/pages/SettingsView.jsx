@@ -13,32 +13,49 @@ export default function SettingsView() {
     if (!logText.trim()) return;
 
     const lines = logText.split('\n');
-    const startObjDate = new Date(baseDate);
-    
+    let currentBaseDate = new Date(baseDate); 
     let currentDayOffset = 0;
     let lastHour = -1;
     let importedCount = 0;
 
+    const meses = {
+      enero: 0, febrero: 1, marzo: 2, abril: 3, mayo: 4, junio: 5,
+      julio: 6, agosto: 7, septiembre: 8, octubre: 9, noviembre: 10, diciembre: 11
+    };
+
     lines.forEach(line => {
-      // Intentar encontrar algo tipo "9:43", "01:30"
+      const lower = line.toLowerCase();
+
+      // 1. Detectar fechas explícitas como "2abril" o "15 de mayo"
+      const dateMatch = lower.match(/(?:^|\s)(\d{1,2})\s*(?:de\s*)?(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)/);
+      if (dateMatch) {
+        const day = parseInt(dateMatch[1], 10);
+        const monthStr = dateMatch[2];
+        const month = meses[monthStr];
+        const year = new Date().getFullYear(); // Asumimos año actual
+        
+        currentBaseDate = new Date(year, month, day);
+        currentDayOffset = 0;
+        lastHour = -1;
+      }
+
+      // 2. Intentar encontrar algo tipo "9:43", "01:30"
       const timeMatch = line.match(/(\d{1,2}):(\d{2})/);
-      if (!timeMatch) return; // Ignorar líneas sin hora (ej: "Llamar a ro")
+      if (!timeMatch) return; 
 
       const hour = parseInt(timeMatch[1], 10);
       const minute = parseInt(timeMatch[2], 10);
 
-      // Lógica simple de salto de día (si pasamos de 23:00 a 01:00 es el día siguiente)
+      // Salto de día (si pasamos de 23:00 a 01:00 es el día siguiente)
       if (lastHour !== -1 && hour < lastHour && (lastHour - hour > 10)) {
         currentDayOffset++;
       }
       lastHour = hour;
 
       // Construir la fecha exacta
-      const dateToUse = addDays(startObjDate, currentDayOffset);
+      const dateToUse = addDays(currentBaseDate, currentDayOffset);
       dateToUse.setHours(hour, minute, 0, 0);
       const isoString = dateToUse.toISOString();
-
-      const lower = line.toLowerCase();
       
       // Buscar tomas (teta, pecho, bibe, biberon)
       if (lower.includes('teta') || lower.includes('pecho')) {
@@ -50,8 +67,7 @@ export default function SettingsView() {
         importedCount++;
       }
       
-      // Buscar pañales (pañal pis, caca)
-      // Ojo: una línea "teta (pañal caca y pis)" debe sumar pecho, pipi y caca a la misma hora
+      // Buscar pañales
       if (lower.includes('pis')) {
         addEntry({ type: 'pee', date: isoString });
         importedCount++;
@@ -84,7 +100,7 @@ export default function SettingsView() {
         </p>
 
         <div className="input-group">
-          <label>Día inicial de la nota:</label>
+          <label>Fecha por defecto (si la nota no la incluye textualmente):</label>
           <input 
             type="date" 
             value={baseDate} 
@@ -95,7 +111,7 @@ export default function SettingsView() {
 
         <textarea 
           className="settings-textarea"
-          placeholder="Ejemplo:&#10;9:43 teta 5/10 (pañal pis)&#10;11:30 biberón 30 mil 10/10&#10;Llamar a tati&#10;1:30 teta (pañal caca)"
+          placeholder="Ejemplo:&#10;2abril cuarto día:&#10;9:43 teta 5/10 (pañal pis)&#10;11:30 biberón 30 mil 10/10&#10;Llamar a tati&#10;1:30 teta (pañal caca)"
           value={logText}
           onChange={(e) => setLogText(e.target.value)}
           rows={8}
