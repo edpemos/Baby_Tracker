@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { format, startOfMonth, startOfWeek, endOfMonth, endOfWeek, addDays, isSameMonth, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useData } from '../context/DataContext';
-import { Droplet, Milk, Baby, X } from 'lucide-react';
+import { Droplet, Milk, Baby, X, Trash2 } from 'lucide-react';
 
 export default function CalendarView() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [entryTime, setEntryTime] = useState('');
-  const { entries, addEntry } = useData();
+  const { entries, addEntry, deleteEntry } = useData();
 
   // Helper arrays for calendar grid
   const monthStart = startOfMonth(currentDate);
@@ -42,7 +42,6 @@ export default function CalendarView() {
   const handleAdd = (type) => {
     if (!selectedDate) return;
     
-    // Replace the time of selectedDate with the chosen time
     const [hours, minutes] = entryTime.split(':');
     const finalDate = new Date(selectedDate);
     finalDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
@@ -51,7 +50,12 @@ export default function CalendarView() {
       type,
       date: finalDate.toISOString()
     });
-    // Optional: closeDrawer() here if we want to dismiss it immediately
+  };
+
+  const handleDelete = (id) => {
+    if(window.confirm("¿Seguro que quieres borrar este registro?")) {
+      deleteEntry(id);
+    }
   };
 
   const getEntriesForSelectedDay = () => {
@@ -172,6 +176,9 @@ export default function CalendarView() {
                       <div className="entry-time">{format(new Date(entry.date), "HH:mm")}</div>
                       <div className="entry-icon">{renderIconForType(entry.type)}</div>
                       <div className="entry-label">{typeLabels[entry.type]}</div>
+                      <button className="entry-delete" onClick={() => handleDelete(entry.id)}>
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   ))}
                 </div>

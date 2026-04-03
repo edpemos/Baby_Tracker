@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, addDoc, getDocs, onSnapshot, query } from 'firebase/firestore';
+import { collection, addDoc, getDocs, onSnapshot, query, doc, deleteDoc } from 'firebase/firestore';
 
 const DataContext = createContext();
 
@@ -91,6 +91,21 @@ export function DataProvider({ children }) {
     localStorage.setItem('ignacio_entries_backup', JSON.stringify(updated));
   };
 
+  // Delete Data
+  const deleteEntry = async (id) => {
+    if (db) {
+      try {
+        await deleteDoc(doc(db, 'entries', id));
+      } catch (err) {
+        console.error("No se pudo borrar de Firebase", err);
+      }
+    } else {
+      const updated = entries.filter(e => e.id !== id);
+      setEntries(updated);
+      localStorage.setItem('ignacio_entries_backup', JSON.stringify(updated));
+    }
+  };
+
 
   return (
     <DataContext.Provider value={{
@@ -99,7 +114,8 @@ export function DataProvider({ children }) {
       logout,
       entries,
       loading,
-      addEntry
+      addEntry,
+      deleteEntry
     }}>
       {children}
     </DataContext.Provider>

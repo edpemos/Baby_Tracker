@@ -103,6 +103,29 @@ body {
   color: var(--text-dark);
 }
 
+.entry-label {
+  font-weight: 500;
+  color: var(--text-dark);
+  font-size: 0.95rem;
+  flex: 1;
+}
+.entry-delete {
+  padding: 6px;
+  background: none;
+  border: none;
+  color: var(--text-light);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s, color 0.2s;
+}
+.entry-delete:hover {
+  color: #DB4437;
+  background: rgba(219, 68, 55, 0.1);
+}
+
 .login-subtitle {
   color: var(--text-light);
   font-size: 0.9rem;
