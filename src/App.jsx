@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { DataProvider, useData } from './context/DataContext';
 import Login from './components/Login';
 import Navigation from './components/Navigation';
@@ -38,12 +38,12 @@ const AuthenticatedLayout = () => {
 export default function App() {
   return (
     <DataProvider>
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           <Route path="/login" element={<LoginRoute />} />
           <Route path="/*" element={<AuthenticatedLayout />} />
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </DataProvider>
   );
 }
