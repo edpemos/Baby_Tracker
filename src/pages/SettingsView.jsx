@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { format, addDays } from 'date-fns';
-import { Settings as SettingsIcon, UploadCloud, CheckCircle } from 'lucide-react';
+import { Settings as SettingsIcon, UploadCloud, CheckCircle, Baby } from 'lucide-react';
 
 export default function SettingsView() {
-  const { addEntry } = useData();
+  const { addEntry, birthDate, setBirthDate } = useData();
   const [logText, setLogText] = useState('');
   const [baseDate, setBaseDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [feedback, setFeedback] = useState(null);
@@ -88,6 +88,24 @@ export default function SettingsView() {
       <div className="home-header">
         <h2 className="view-title">Ajustes</h2>
         <p className="subtitle">Herramientas y configuración</p>
+      </div>
+
+      <div className="glass import-card" style={{marginBottom: '1.5rem'}}>
+        <div className="card-header">
+          <Baby className="header-icon" />
+          <h3>Datos de Ignacio</h3>
+        </div>
+        <p className="instruction">Indica su fecha de nacimiento para que la IA prediga hitos de desarrollo y crisis de lactancia/sueño.</p>
+        
+        <div className="input-group">
+          <label>Fecha de nacimiento / parto:</label>
+          <input 
+            type="date" 
+            value={birthDate} 
+            onChange={(e) => setBirthDate(e.target.value)}
+            className="settings-input"
+          />
+        </div>
       </div>
 
       <div className="glass import-card">

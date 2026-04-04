@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
 import { useData } from '../context/DataContext';
-import { isSameDay, isSameWeek } from 'date-fns';
-import { Sparkles, Activity, AlertCircle } from 'lucide-react';
+import { isSameDay, isSameWeek, differenceInDays, differenceInWeeks, differenceInMonths } from 'date-fns';
+import { Sparkles, Activity, AlertCircle, Baby } from 'lucide-react';
 
 export default function AIPanel() {
-  const { entries } = useData();
+  const { entries, birthDate } = useData();
 
   const advice = useMemo(() => {
     const today = new Date();
@@ -105,8 +105,39 @@ export default function AIPanel() {
       });
     }
 
+    // Lógica de Hitos de Desarrollo (Milestones) y Crisis
+    if (birthDate) {
+      const daysOld = differenceInDays(today, new Date(birthDate));
+      const weeksOld = differenceInWeeks(today, new Date(birthDate));
+      const monthsOld = differenceInMonths(today, new Date(birthDate));
+      
+      let milestoneTip = null;
+      
+      if (daysOld >= 14 && daysOld <= 22) {
+          milestoneTip = { title: "Crisis de los 15 días", text: "Es muy posible que Ignacio esté atravesando su primera crisis de lactancia. Pedirá continuamente, peleará al pecho y parecerá que no se sacia. Es su forma de decirle a tu cuerpo que aumente la producción de fábrica. ¡Mucha paciencia!"};
+      } else if (weeksOld >= 5 && weeksOld <= 7) {
+          milestoneTip = { title: "Brote de las 6 semanas", text: "Es una edad de grandes saltos cognitivos. Suelen llorar más (especialmente por la tarde). Además las cacas cambian: es normal si ahora de repente pasa varios días sin hacer."};
+      } else if (daysOld >= 80 && daysOld <= 110) { // Alrededor de los 3 meses
+          milestoneTip = { title: "Crisis de los 3 meses", text: "La gran crisis. Ignacio ahora ve mejor, se distrae con todo y las tomas son más caóticas y cortas. Además, tus pechos se sienten más blandos. Tranquila, tu cuerpo ha aprendido a fabricar leche al instante en cada succión en vez de almacenarla."};
+      } else if (monthsOld === 4) {
+          milestoneTip = { title: "Regresión de sueño (4 Meses)", text: "Si notas que se despierta constantemente tras semanas durmiendo bien, estás ante la primera gran regresión de sueño. Su cerebro está cambiando fisiológicamente su forma de dormir para que sea más parecida a la de los adultos."};
+      } else if (monthsOld === 6) {
+          milestoneTip = { title: "Alimentación Complementaria", text: "A los 6 meses comienza la etapa de alimentación complementaria. Recuerda que la leche (pecho o fórmula) sigue siendo su alimento principal hasta el primer año de vida."};
+      }
+      
+      if (milestoneTip) {
+          // Lo añadimos el primero para que llame la atención por encima de los genéricos
+          tips.unshift({
+             type: 'good',
+             icon: <Baby color="#0F9D58" />,
+             title: `Especial: ${milestoneTip.title}`,
+             text: milestoneTip.text
+          });
+      }
+    }
+
     return tips;
-  }, [entries]);
+  }, [entries, birthDate]);
 
   return (
     <div className="ai-container animate-fade-in">

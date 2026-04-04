@@ -8,6 +8,7 @@ export function DataProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [birthDate, setBirthDate] = useState(() => localStorage.getItem('ignacio_birth_date') || '');
 
   // Authentication check
   useEffect(() => {
@@ -115,7 +116,12 @@ export function DataProvider({ children }) {
       entries,
       loading,
       addEntry,
-      deleteEntry
+      deleteEntry,
+      birthDate,
+      setBirthDate: (date) => {
+        setBirthDate(date);
+        localStorage.setItem('ignacio_birth_date', date);
+      }
     }}>
       {children}
     </DataContext.Provider>
