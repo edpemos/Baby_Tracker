@@ -1,79 +1,142 @@
 import React, { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
-import { format, addHours } from 'date-fns';
-import { Clock, Baby, ChevronRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { isSameDay, subDays, isPast } from 'date-fns';
+import { Droplet, Milk, BrainCircuit, Clock } from 'lucide-react';
 
 export default function HomeView() {
+  const navigate = useNavigate();
   const { entries } = useData();
 
-  const nextFeedingInfo = useMemo(() => {
-    // Filtrar solo las tomas de alimentación
-    const feedings = entries.filter(e => e.type === 'breast' || e.type === 'bottle');
-    
-    if (feedings.length === 0) return null;
+  const metrics = useMemo(() => {
+    // Encontrar la última toma (pecho o biberón)
+    const sortedFeedings = entries
+      .filter(e => ['breast', 'bottle'].includes(e.type))
+      .sort((a,b) => new Date(a.date) - new Date(b.date));
 
-    // Obtener la toma más reciente (suponiendo que ya están ordenadas u ordenándolas)
-    const sortedFeedings = [...feedings].sort((a, b) => new Date(b.date) - new Date(a.date));
-    const lastFeedingDate = new Date(sortedFeedings[0].date);
-    
-    // Sumar 2 horas
-    const nextTime = addHours(lastFeedingDate, 2);
+    const lastFeeding = sortedFeedings.length > 0 ? sortedFeedings[sortedFeedings.length - 1] : null;
 
-    return {
-      lastType: sortedFeedings[0].type,
-      lastTimeFormatted: format(lastFeedingDate, 'HH:mm'),
-      nextTimeFormatted: format(nextTime, 'HH:mm'),
-      isOverdue: new Date() > nextTime
+    // Calcular la predicción estadística (Media de espera para esta franja horaria)
+    let forecastMs = 2 * 3600000; // Por defecto empezamos con 2 horas si no hay datos
+    let hasEnoughData = false;
+
+    if (lastFeeding && sortedFeedings.length > 2) {
+      const gaps = [];
+      for (let i = 0; i < sortedFeedings.length - 1; i++) {
+        const current = new Date(sortedFeedings[i].date);
+        const next = new Date(sortedFeedings[i+1].date);
+        const diffMs = next - current;
+        
+        // Ignorar saltos irreales (más de 8h probables olvidos, o menos de 30 mins)
+        if (diffMs > 8 * 3600000 || diffMs < 1800000) continue;
+        
+        gaps.push({
+          startHour: current.getHours(),
+          diffMs
+        });
+      }
+
+      const targetHour = new Date(lastFeeding.date).getHours();
+      
+      // Filtrar aquellos huecos históricos de tomas que ocurrieron en la misma franja de +-3 horas
+      const relevantGaps = gaps.filter(g => {
+        const hDiff = Math.abs(g.startHour - targetHour);
+        return hDiff <= 3 || hDiff >= 21; // contempla el cruce de medianoche
+      });
+
+      if (relevantGaps.length >= 2) {
+        hasEnoughData = true;
+        const sumMs = relevantGaps.reduce((acc, g) => acc + g.diffMs, 0);
+        forecastMs = sumMs / relevantGaps.length;
+      }
+    }
+
+    let nextFeedingRefDate = null;  // La regla de las 2 horas
+    let nextFeedingForecast = null; // La bola de crista de la IA
+    let isAlertRef = false;
+    let isAlertForecast = false;
+
+    if (lastFeeding) {
+      nextFeedingRefDate = new Date(new Date(lastFeeding.date).getTime() + (2 * 3600000));
+      nextFeedingForecast = new Date(new Date(lastFeeding.date).getTime() + forecastMs);
+      
+      isAlertRef = isPast(nextFeedingRefDate);
+      isAlertForecast = isPast(nextFeedingForecast);
+    }
+
+    return { 
+      lastFeeding, 
+      nextFeedingRefDate, 
+      nextFeedingForecast,
+      isAlertRef,
+      isAlertForecast,
+      hasEnoughData
     };
   }, [entries]);
+
+  // Format Helper
+  const formatTime = (date) => {
+    return date ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+  };
 
   return (
     <div className="home-container animate-fade-in">
       <div className="home-header">
-        <h1 className="view-title">¡Hola!</h1>
+        <h1 className="greeting">¡Hola! 👋</h1>
         <p className="subtitle">Resumen diario de Ignacio</p>
       </div>
 
-      <div className="home-content">
-        {nextFeedingInfo ? (
-          <div className="glass next-feeding-card animate-slide-up">
-            <div className="card-header">
-              <Clock className="header-icon" />
-              <h3>Próxima toma sugerida a las:</h3>
+      <div className="main-cards">
+        
+        {/* Tarjeta de Modelado Inteligente */}
+        <div className={`glass timer-card animate-slide-up ${metrics.isAlertForecast ? 'alert' : ''}`}>
+          <div className="timer-header">
+            <BrainCircuit size={18} />
+            <h2>Pronóstico Inteligente</h2>
+          </div>
+          <div className="timer-value">
+            {formatTime(metrics.nextFeedingForecast)}
+          </div>
+          <div className="timer-footer">
+            {metrics.hasEnoughData 
+              ? "Calculado según el ritmo histórico a esta hora."
+              : "Recopilando datos para el algoritmo..."}
+          </div>
+        </div>
+
+        {/* Tarjeta de Regla de 2 horas */}
+        <div className={`glass timer-card secondary animate-slide-up ${metrics.isAlertRef ? 'alert' : ''}`} style={{animationDelay: '0.1s'}}>
+          <div className="timer-header">
+            <Clock size={16} />
+            <h2>Referencia Base (2h)</h2>
+          </div>
+          <div className="timer-value small">
+            {formatTime(metrics.nextFeedingRefDate)}
+          </div>
+        </div>
+
+      </div>
+
+      <div className="last-record animate-fade-in" style={{animationDelay: '0.2s'}}>
+        <h3>Última Toma Registrada:</h3>
+        {metrics.lastFeeding ? (
+          <div className="last-record-box glass">
+            <div className="icon-wrapper">
+              {metrics.lastFeeding.type === 'breast' ? <Droplet size={20} color="#F06292"/> : <Milk size={20} color="#4285F4"/>}
             </div>
-            
-            <div className={`time-display ${nextFeedingInfo.isOverdue ? 'overdue' : ''}`}>
-              {nextFeedingInfo.nextTimeFormatted}
+            <div className="record-details">
+              <strong>{metrics.lastFeeding.type === 'breast' ? 'Pecho' : 'Biberón'}</strong>
+              <span>a las {formatTime(new Date(metrics.lastFeeding.date))}</span>
             </div>
-            
-            <p className="last-info">
-              (Última toma de {nextFeedingInfo.lastType === 'breast' ? 'Pecho' : 'Biberón'} a las {nextFeedingInfo.lastTimeFormatted})
-            </p>
           </div>
         ) : (
-          <div className="glass next-feeding-card animate-slide-up">
-            <div className="card-header">
-              <Baby className="header-icon" />
-              <h3>¡Aún no hay tomas!</h3>
-            </div>
-            <p className="last-info">Registra la primera toma en el calendario para calcular la siguiente.</p>
-          </div>
+          <p className="empty-state">No hay tomas registradas.</p>
         )}
-
-        <Link to="/calendar" className="glass shortcut-card animate-slide-up" style={{ animationDelay: '0.1s' }}>
-          <div className="shortcut-content">
-            <div className="icon-wrapper">
-              <Baby color="var(--primary)" />
-            </div>
-            <div className="shortcut-text">
-              <h3>Ir al Calendario</h3>
-              <p>Registrar pañales y tomas</p>
-            </div>
-          </div>
-          <ChevronRight color="var(--text-light)" />
-        </Link>
       </div>
+
+      <button className="primary-btn mt-auto" onClick={() => navigate('/calendar')}>
+        Ir al Calendario
+      </button>
 
       <style>{`
         .home-container {
@@ -85,89 +148,127 @@ export default function HomeView() {
         .home-header {
           margin-bottom: 2rem;
         }
-        .view-title {
-          font-size: 2rem;
+        .greeting {
+          font-size: 2.2rem;
           font-weight: 700;
           color: var(--text-dark);
-          margin-bottom: 0.25rem;
+          margin-bottom: 0.2rem;
         }
         .subtitle {
           color: var(--text-light);
           font-size: 1rem;
         }
-        .home-content {
+        .main-cards {
           display: flex;
           flex-direction: column;
-          gap: 1.5rem;
+          gap: 1rem;
+          margin-bottom: 2rem;
         }
-        .next-feeding-card {
-          padding: 2rem;
-          text-align: center;
+        .timer-card {
+          padding: 1.5rem;
           display: flex;
           flex-direction: column;
           align-items: center;
-          background: linear-gradient(135deg, rgba(66, 133, 244, 0.05) 0%, rgba(255, 255, 255, 0.9) 100%);
+          text-align: center;
+          border: 2px solid transparent;
+          transition: border-color 0.3s;
         }
-        .card-header {
+        .timer-card.secondary {
+          padding: 1rem;
+        }
+        .timer-card.alert {
+          border-color: rgba(244, 180, 0, 0.5);
+          background: rgba(244, 180, 0, 0.05);
+        }
+        .timer-card.alert .timer-value, .timer-card.alert .timer-header {
+          color: #F4B400;
+        }
+        .timer-header {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          margin-bottom: 1rem;
-          color: var(--text-dark);
+          color: var(--text-light);
+          margin-bottom: 0.5rem;
         }
-        .header-icon {
-          color: var(--primary);
-        }
-        .card-header h3 {
+        .timer-header h2 {
+          font-size: 1rem;
           font-weight: 600;
-          font-size: 1.1rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
-        .time-display {
-          font-size: 4rem;
-          font-weight: 700;
+        .timer-card.secondary .timer-header h2 {
+          font-size: 0.85rem;
+        }
+        .timer-value {
+          font-size: 3.5rem;
+          font-weight: 800;
           color: var(--primary);
           line-height: 1;
-          margin-bottom: 1rem;
+          margin-bottom: 0.5rem;
         }
-        .time-display.overdue {
-          color: var(--color-pee); /* Use a warning color if overdue */
+        .timer-value.small {
+          font-size: 2rem;
+          color: var(--text-dark);
+          margin-bottom: 0;
         }
-        .last-info {
+        .timer-footer {
+          font-size: 0.8rem;
           color: var(--text-light);
+        }
+        .last-record h3 {
           font-size: 0.95rem;
+          font-weight: 600;
+          color: var(--text-light);
+          margin-bottom: 0.8rem;
+          text-transform: uppercase;
         }
-        .shortcut-card {
-          display: flex;
-          padding: 1.5rem;
-          align-items: center;
-          justify-content: space-between;
-          text-decoration: none;
-          color: inherit;
-          transition: transform 0.2s;
-        }
-        .shortcut-card:active {
-          transform: scale(0.98);
-        }
-        .shortcut-content {
+        .last-record-box {
           display: flex;
           align-items: center;
           gap: 1rem;
+          padding: 1rem;
         }
         .icon-wrapper {
-          background: rgba(66, 133, 244, 0.1);
-          padding: 0.75rem;
+          background: rgba(255,255,255,0.6);
+          width: 40px;
+          height: 40px;
           border-radius: 50%;
           display: flex;
+          align-items: center;
+          justify-content: center;
         }
-        .shortcut-text h3 {
+        .record-details {
+          display: flex;
+          flex-direction: column;
+        }
+        .record-details strong {
+          color: var(--text-dark);
+          font-size: 1.1rem;
+        }
+        .record-details span {
+          color: var(--text-light);
+          font-size: 0.9rem;
+        }
+        .empty-state {
+          color: var(--text-light);
+          font-style: italic;
+          font-size: 0.9rem;
+        }
+        .primary-btn {
+          width: 100%;
+          padding: 1rem;
+          margin-top: auto;
+          background: var(--primary);
+          color: white;
+          border: none;
+          border-radius: 16px;
           font-size: 1.1rem;
           font-weight: 600;
-          color: var(--text-dark);
-          margin-bottom: 0.25rem;
+          box-shadow: 0 4px 14px rgba(66, 133, 244, 0.4);
+          cursor: pointer;
         }
-        .shortcut-text p {
-          font-size: 0.9rem;
-          color: var(--text-light);
+        .primary-btn:active {
+          transform: scale(0.98);
         }
       `}</style>
     </div>
