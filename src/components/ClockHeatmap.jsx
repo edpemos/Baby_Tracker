@@ -32,23 +32,21 @@ export default function ClockHeatmap({ title, icon, data = [] }) {
   const maxVal = Math.max(...safeData, 0);
 
   const getColor = (val) => {
-    if (val === 0) return 'rgba(0,0,0,0.06)';
-    
-    // Si hay valor, lo mapeamos a un espectro de calor
-    // maxVal -> intensidad 1 (Rojo HSL=0), minVal>0 -> intensidad pequeña (Azul HSL=220)
-    // Para que no se quede todo del mismo color si los números son pequeños, normalizamos:
     let intensity = maxVal === 0 ? 0 : val / maxVal;
     
-    // Aumentamos un poquito la intensidad base para que el valor 1 no parezca demasiado frío si el máximo es muy alto
-    intensity = Math.max(0.2, intensity);
-
-    const hue = 240 - (intensity * 240); // 240 = Azul, 0 = Rojo
-    return `hsl(${hue}, 85%, 55%)`;
+    // Mapeo continuo matemático
+    // Hue: 240 (Azul) a 0 (Rojo)
+    const hue = Math.round(240 * (1 - intensity));
+    // Saturación: 60% (azul pastel suave) a 90% (rojo muy vivo)
+    const sat = Math.round(60 + (30 * intensity));
+    // Luminosidad: 95% (casi del color del fondo) a 55% (intenso puro)
+    const lum = Math.round(95 - (40 * intensity));
+    
+    return `hsl(${hue}, ${sat}%, ${lum}%)`;
   };
 
   const getOpacity = (val) => {
-    if (val === 0) return 0.5;
-    return 1;
+    return 1; // Usamos colores opacos, el mapa de calor da la opacidad mediante luminosidad
   };
 
   // Dimensiones del SVG
@@ -157,6 +155,15 @@ export default function ClockHeatmap({ title, icon, data = [] }) {
         <span className="chl-pm">PM interior</span>
       </div>
 
+      {/* Espectro / Leyenda Color */}
+      <div className="ch-color-legend">
+        <div className="ch-gradient-bar"></div>
+        <div className="ch-gradient-labels">
+          <span>0 (Nada)</span>
+          <span>{maxVal} (Máx.)</span>
+        </div>
+      </div>
+
       <style>{`
         .clock-heatmap-card {
           flex: 1;
@@ -215,6 +222,32 @@ export default function ClockHeatmap({ title, icon, data = [] }) {
           border-radius: 50%;
           margin-right: 4px;
           background: rgba(0,0,0,0.1);
+        }
+        .ch-color-legend {
+          width: 100%;
+          margin-top: 1.2rem;
+          padding: 0 0.5rem;
+        }
+        .ch-gradient-bar {
+          width: 100%;
+          height: 8px;
+          border-radius: 4px;
+          /* Interpolación CSS manual aproximada a la fórmula HSL JS (Azul -> Cian -> Verde -> Amarillo -> Rojo) */
+          background: linear-gradient(to right, 
+            hsl(240, 60%, 95%), 
+            hsl(180, 67%, 85%), 
+            hsl(120, 75%, 75%), 
+            hsl(60, 82%, 65%), 
+            hsl(0, 90%, 55%)
+          );
+        }
+        .ch-gradient-labels {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 6px;
+          font-size: 0.75rem;
+          color: var(--text-light);
+          font-weight: 500;
         }
       `}</style>
     </div>
