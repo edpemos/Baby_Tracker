@@ -2,7 +2,8 @@ import React, { useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { startOfDay, subDays, format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Milk, Droplet, Activity } from 'lucide-react';
+import ClockHeatmap from '../components/ClockHeatmap';
 
 export default function StatsView() {
   const { entries } = useData();
@@ -24,30 +25,26 @@ export default function StatsView() {
     // Métricas Semana 2 (Anterior)
     let foodW2 = 0, diapersW2 = 0;
 
-    const heatmapMatrix = Array.from({length: 7}).map((_, i) => {
-      return { 
-        dateObj: subDays(today, 6 - i), 
-        name: format(subDays(today, 6 - i), 'E', { locale: es }).toUpperCase(),
-        hours: new Array(24).fill(0) 
-      };
-    });
+    // Mapas de calor (toda la historia)
+    const feedHours = new Array(24).fill(0);
+    const poopHours = new Array(24).fill(0);
+    const peeHours = new Array(24).fill(0);
 
     entries.forEach(e => {
       const d = new Date(e.date);
+      const h = d.getHours();
       const isFood = e.type === 'breast' || e.type === 'bottle';
       const isDiaper = e.type === 'pee' || e.type === 'poop';
+
+      if (isFood) feedHours[h]++;
+      if (e.type === 'poop') poopHours[h]++;
+      if (e.type === 'pee') peeHours[h]++;
 
       if (isW1(d)) {
         if (isFood) {
           foodW1++;
           if (e.type === 'breast') breastW1++;
           if (e.type === 'bottle') bottleW1++;
-
-          // Rellenar Heatmap
-          const dayDiff = Math.floor((d.getTime() - w1Start.getTime()) / 86400000);
-          if (dayDiff >= 0 && dayDiff < 7) {
-            heatmapMatrix[dayDiff].hours[d.getHours()]++;
-          }
         }
         if (isDiaper) diapersW1++;
       } else if (isW2(d)) {
@@ -68,7 +65,7 @@ export default function StatsView() {
       foodW1, foodW2, foodDiff,
       diapersW1, diapersW2, diapersDiff,
       breastPct, bottlePct,
-      heatmapMatrix
+      feedHours, poopHours, peeHours
     };
   }, [entries]);
 
@@ -129,41 +126,14 @@ export default function StatsView() {
           </div>
         </div>
 
-        {/* 3. Heatmap Horario */}
-        <div className="glass stat-card animate-slide-up" style={{ animationDelay: '0.3s' }}>
-          <h3 className="card-title">Mapa de Calor: Clústers de Tomas</h3>
-          <p className="card-subtitle">Frecuencia por horas (00h - 23h)</p>
-          
-          <div className="heatmap-wrapper">
-            <div className="heatmap-header">
-              <div className="hm-label-placeholder"></div>
-              {Array.from({length: 24}).map((_, i) => (
-                // Solo pintamos números pares por espacio
-                <div key={i} className="hm-col-label">{i % 2 === 0 ? i : ''}</div>
-              ))}
-            </div>
-            
-            {analytics.heatmapMatrix.map((day, dIdx) => (
-              <div key={dIdx} className="heatmap-row">
-                <div className="hm-row-label">{day.name}</div>
-                {day.hours.map((count, hIdx) => {
-                  let opacity = 0.05;
-                  if (count === 1) opacity = 0.4;
-                  if (count === 2) opacity = 0.7;
-                  if (count > 2) opacity = 1;
-                  
-                  return (
-                    <div 
-                      key={hIdx} 
-                      className="hm-cell"
-                      style={{ background: count > 0 ? `rgba(66, 133, 244, ${opacity})` : 'rgba(0,0,0,0.03)' }}
-                      title={`${count} tomas a las ${hIdx}:00 el ${day.name}`}
-                    ></div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
+        {/* 3. Heatmaps Circulares */}
+        <h3 className="card-title" style={{ marginTop: '1rem', marginLeft: '0.5rem' }}>Mapas Circadianos (Histórico Total)</h3>
+        <p className="card-subtitle" style={{ marginLeft: '0.5rem' }}>Frecuencia y volumen (rojo = más)</p>
+        
+        <div className="clock-heatmaps-wrapper">
+          <ClockHeatmap title="Tomas" icon={<Milk size={20} />} data={analytics.feedHours} />
+          <ClockHeatmap title="Cacas" icon={<Activity size={20} />} data={analytics.poopHours} />
+          <ClockHeatmap title="Pises" icon={<Droplet size={20} />} data={analytics.peeHours} />
         </div>
 
       </div>
@@ -264,47 +234,12 @@ export default function StatsView() {
           width: 10px; height: 10px; border-radius: 50%;
         }
 
-        /* Heatmap */
-        .heatmap-wrapper {
+        /* Heatmap - Old classes removed to save space, but kept some generic flex */
+        .clock-heatmaps-wrapper {
           display: flex;
-          flex-direction: column;
-          gap: 4px;
-          overflow-x: auto; /* Por si en móviles muy pequeños no cabe */
-          padding-bottom: 0.5rem;
-        }
-        .heatmap-header {
-          display: flex;
-          gap: 2px;
-          margin-bottom: 2px;
-        }
-        .hm-label-placeholder {
-          width: 35px;
-          flex-shrink: 0;
-        }
-        .hm-col-label {
-          flex: 1;
-          min-width: 8px; /* Para que cuadre con las celdas */
-          font-size: 0.6rem;
-          color: var(--text-light);
-          text-align: center;
-        }
-        .heatmap-row {
-          display: flex;
-          gap: 2px;
-          align-items: center;
-        }
-        .hm-row-label {
-          width: 35px;
-          font-size: 0.65rem;
-          font-weight: 600;
-          color: var(--text-dark);
-          flex-shrink: 0;
-        }
-        .hm-cell {
-          flex: 1;
-          height: 18px; /* Altura de la celda */
-          border-radius: 2px;
-          min-width: 8px;
+          flex-wrap: wrap;
+          gap: 1rem;
+          justify-content: space-between;
         }
       `}</style>
     </div>

@@ -1,12 +1,20 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
-import { isSameDay, subDays, isPast } from 'date-fns';
+import { isSameDay, subDays, isPast, differenceInMinutes } from 'date-fns';
 import { Droplet, Milk, BrainCircuit, Clock } from 'lucide-react';
 
 export default function HomeView() {
   const navigate = useNavigate();
   const { entries } = useData();
+
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    // Actualizamos el "now" cada 60 segundos para el contador de tiempo transcurrido
+    const interval = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const metrics = useMemo(() => {
     // Encontrar la última toma (pecho o biberón)
@@ -79,6 +87,18 @@ export default function HomeView() {
     return date ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
   };
 
+  const formatTimeAgo = (lastDate) => {
+    if (!lastDate) return '';
+    const diff = differenceInMinutes(now, new Date(lastDate));
+    if (diff < 1) return 'hace un momento';
+    const hours = Math.floor(diff / 60);
+    const mins = diff % 60;
+    
+    if (hours === 0) return `hace ${mins} min`;
+    if (mins === 0) return `hace ${hours} h`;
+    return `hace ${hours} h y ${mins} min`;
+  };
+
   return (
     <div className="home-container animate-fade-in">
       <div className="home-header">
@@ -126,7 +146,8 @@ export default function HomeView() {
             </div>
             <div className="record-details">
               <strong>{metrics.lastFeeding.type === 'breast' ? 'Pecho' : 'Biberón'}</strong>
-              <span>a las {formatTime(new Date(metrics.lastFeeding.date))}</span>
+              <span className="time-exact">a las {formatTime(new Date(metrics.lastFeeding.date))}</span>
+              <span className="time-ago">{formatTimeAgo(metrics.lastFeeding.date)}</span>
             </div>
           </div>
         ) : (
@@ -245,9 +266,19 @@ export default function HomeView() {
           color: var(--text-dark);
           font-size: 1.1rem;
         }
-        .record-details span {
+        .record-details span.time-exact {
           color: var(--text-light);
-          font-size: 0.9rem;
+          font-size: 0.85rem;
+        }
+        .record-details span.time-ago {
+          color: #DB4437;
+          font-weight: 600;
+          font-size: 0.95rem;
+          margin-top: 2px;
+          background: rgba(219, 68, 55, 0.05);
+          display: inline-block;
+          padding: 2px 6px;
+          border-radius: 4px;
         }
         .empty-state {
           color: var(--text-light);
